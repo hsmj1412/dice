@@ -38,3 +38,6 @@ class ItemBase(object):
         :return: Option value got.
         """
         return getattr(self, path, None)
+
+    def save(self, path="./saved_item.txt"):
+        pass  # TODO

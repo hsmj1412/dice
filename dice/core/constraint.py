@@ -4,6 +4,7 @@ import os
 import random
 import re
 import yaml
+import shutil
 
 from . import trace
 
@@ -89,14 +90,27 @@ class ConstraintManager(object):
         self.item = item
         self.status = {c.name: 'untouched'
                        for c in self.constraints}
+        cst_temp = self.constraints[:]
+        path_temp = None
         while any(s == 'untouched' for s in self.status.values()):
-            for constraint in self.constraints:
-                if self._assumption_valid(constraint):
-                    result = constraint.apply(item)
+            while len(cst_temp) > 0:
+                if self._assumption_valid(cst_temp[0]):
+                    result = cst_temp[0].apply(item)
+                    if result == "success":
+                        if cst_temp[0].child is not None:
+                            path_temp = os.path.join(self.provider.path,
+                                                     'oracles',
+                                                     cst_temp[0].child)
+                            cst_temp += self._load_constraints(path_temp)
+
                 else:
                     result = 'skipped'
 
-                self.status[constraint.name] = result
+                self.status[cst_temp[0].name] = result
+                cst_temp.remove(cst_temp[0])
+            if path_temp is not None:
+                if os.path.isdir(path_temp):
+                    shutil.rmtree(path_temp)
 
 
 class Constraint(object):
@@ -106,7 +120,8 @@ class Constraint(object):
     path_prefix = 'DPATH'
 
     def __init__(self, name, provider,
-                 depends_on=None, require=None, oracle=None):
+                 depends_on=None, require=None, child=None, oracle=None,
+                 fail_ratio=0.1, alpha=20, beta=1.8):
         """
         :param name: Unique string name of the constraint.
         :param depends_on: A logical expression shows prerequisite to apply
@@ -118,8 +133,11 @@ class Constraint(object):
         self.provider = provider
         self.depends_on = depends_on
         self.require = require
+        self.child = child
         self.oracle = oracle
-        self.fail_ratio = 0.1
+        self.fail_ratio = fail_ratio
+        self.alpha = alpha
+        self.beta = beta
         self.traces = self._oracle2traces(oracle)
 
     @classmethod
@@ -202,6 +220,9 @@ class Constraint(object):
         def _parse_assert(node):
             cur_trace.append(node.test)
 
+        def _parse_expr(node):
+            cur_trace.append(node.value)
+
         def _parse_block(nodes):
             for node in nodes:
                 if isinstance(node, ast.If):
@@ -212,6 +233,8 @@ class Constraint(object):
                     cur_trace.append(node)
                     traces.append(trace.Trace(self.provider, cur_trace))
                     cur_trace.pop()
+                elif isinstance(node, ast.Expr):
+                    _parse_expr(node)
                 else:
                     raise ConstraintError(
                         'Unknown node type: %s' % node.__class__.__name__)
@@ -290,7 +313,7 @@ class Constraint(object):
             return name[len(self.path_prefix):].replace('_', '/')
 
         t = self._choose()
-        sols = t.solve(item)
+        sols = t.solve(item, self.alpha, self.beta)
         for name, sol in sols.items():
             item.set(_name2path(name), sol)
 
