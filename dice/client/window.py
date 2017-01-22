@@ -99,7 +99,7 @@ class Window(object):
         elif ch == ord('l'):
             app.show_log = not app.show_log
         elif ch == ord('s'):
-            app.last_item.save('saved_item.txt')
+            app.last_item.save('./saved_item.txt')
         elif ch == ord('\t'):
             cur_idx = self.panels.index(self.active_panel)
             next_idx = (cur_idx + 1) % len(self.panels)

@@ -19,7 +19,7 @@ class SymbolBase(object):
         self.excs = excs
         self.exc_types = exc_types
 
-    def generate(self):
+    def generate(self, alpha=20, beta=1.8):
         """
         Generate a random instance of this symbol without considering scope,
         excs or exc_types. Must be overridden.
@@ -27,7 +27,7 @@ class SymbolBase(object):
         raise NotImplementedError("Method 'generate' not implemented for %s" %
                                   self.__class__.__name__)
 
-    def model(self):
+    def model(self, alpha=20, beta=1.8):
         """
         Generate a random instance of this symbol.
         """
@@ -35,7 +35,7 @@ class SymbolBase(object):
             res = self.generate()
             if self.excs is not None:
                 while res in self.excs:
-                    res = self.generate()
+                    res = self.generate(alpha, beta)
             return res
         else:
             res = random.choice(self.scope)
@@ -49,11 +49,11 @@ class Bytes(SymbolBase):
     """
     Symbol class for a string contains random bytes (1~255).
     """
-    def generate(self):
+    def generate(self, alpha=20, beta=1.8):
         """
         Generate a random bytes string.
         """
-        cnt = int(random.weibullvariate(65535, 1))
+        cnt = int(random.weibullvariate(alpha, beta))
         return ''.join(bt for bt in os.urandom(cnt) if bt != b'\x00')
 
 
@@ -61,11 +61,11 @@ class NonEmptyBytes(Bytes):
     """
     Symbol class for a random byte(1-255) string except empty string.
     """
-    def generate(self):
+    def generate(self, alpha=20, beta=1.8):
         """
         Generate a random non-empty bytes string.
         """
-        cnt = int(random.weibullvariate(65535, 1)) + 1
+        cnt = int(random.weibullvariate(alpha, beta)) + 1
         return ''.join(bt for bt in os.urandom(cnt) if bt != b'\x00')
 
 
@@ -73,11 +73,11 @@ class String(Bytes):
     """
     Symbol class for a random printable string.
     """
-    def generate(self):
+    def generate(self, alpha=20, beta=1.8):
         """
         Generate a random printable string.
         """
-        cnt = int(random.weibullvariate(20, 1.8))
+        cnt = int(random.weibullvariate(alpha, beta))
         return ''.join(random.choice(string.printable) for _ in range(cnt))
 
 
@@ -94,18 +94,18 @@ class StringList(SymbolBase):
         super(StringList, self).__init__()
         self.scopes = []
 
-    def generate(self):
+    def generate(self, alpha=20, beta=1.8):
         """
         Generate a random printable strings.
         """
-        cnt = int(random.weibullvariate(20, 1.8))
+        cnt = int(random.weibullvariate(alpha, beta))
         return ''.join(random.choice(string.printable) for _ in range(cnt))
 
-    def model(self):
+    def model(self, alpha=3, beta=1.8):
         """
         Generate a random-numbered list contains random printable strings.
         """
-        cnt = int(random.weibullvariate(20, 1.8))
+        cnt = int(random.weibullvariate(alpha, beta))
         res = set()
         for _ in range(cnt):
             entry = None
@@ -146,16 +146,15 @@ class Integer(SymbolBase):
             minimum = '-Inf'
         return '<%s %s~%s>' % (self.__class__.__name__, minimum, maximum)
 
-    def generate(self):
+    def generate(self, alpha=30, beta=1.1):
         """
         Generate a random integer.
         """
-        scale = 50.0
         maximum = self.maximum
         minimum = self.minimum
         while True:
             sign = 1.0 if random.random() > 0.5 else -1.0
-            res = sign * (2.0 ** (random.expovariate(1.0 / scale)) - 1.0)
+            res = sign * (2.0 ** (random.weibullvariate(alpha, beta)) - 1.0)
             if maximum is not None:
                 if maximum >= 0 and res > maximum + 1:
                     continue

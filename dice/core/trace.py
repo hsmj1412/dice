@@ -35,7 +35,6 @@ class Trace(object):
         assert isinstance(ret, ast.Return)
         self.result = ret.value.func.id.lower()
         args = ret.value.args
-
         self.result_patts = None
         if args:
             self.result_patts = args[0].s
@@ -55,7 +54,7 @@ class Trace(object):
     def _exec_call(self, node):
         func_name = node.func.attr
         pkg_name = node.func.value.id
-        mod_name = '.'.join([self.provider.name, 'utils', pkg_name])
+        mod_name = '.'.join([self.provider.name + '_utils', pkg_name])
         mod = sys.modules[mod_name]
         func = getattr(mod, func_name)
         args = []
@@ -160,7 +159,10 @@ class Trace(object):
 
     def _proc_call(self, node):
         func_name = node.func.id
-        assert func_name in ['any', 'all']
+        assert func_name in ['any', 'all', 'build']
+        if func_name == 'build':
+            self._exec_call(node.args[0])
+            return
         assert isinstance(node.args[0], ast.Compare)
         comp = node.args[0]
         op = comp.ops[0].__class__.__name__
@@ -189,7 +191,7 @@ class Trace(object):
             left = self._exec_call(left)
             if func_name == 'all':
                 if op == 'In':
-                    raise Exception('TODO')
+                    pass  # TODO
                 elif op == 'NotIn':
                     sym_right.excludes = left
             elif func_name == 'any':
@@ -198,10 +200,12 @@ class Trace(object):
         else:
             raise TraceError('Unknown left type %s' % left)
 
-    def solve(self, item):
+    def solve(self, item, alpha=20, beta=1.8):
         """
         Generate a satisfiable random option according to this trace.
         :param item: Item to which generated option applies.
+        :param alpha: Alpha to Weibull distribution.
+        :param beta: Beta to Weibull distribution.
         :return: Generated random option.
         """
         self.item = item
@@ -215,7 +219,7 @@ class Trace(object):
             elif isinstance(node, ast.Return):
                 result = {}
                 for name, sym in self.symbols.items():
-                    result[name] = sym.model()
+                    result[name] = sym.model(alpha, beta)
                 return result
             else:
                 raise TraceError('Unknown node type: %s' % type(node))
