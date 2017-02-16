@@ -176,27 +176,25 @@ class Trace(object):
             assert op in ['In', 'NotIn']
             if func_name == 'all':
                 if op == 'In':
-                    sym_left.scopes.append((right, True, 0))
+                    sym_left.scopes.append((right, 'allin'))
                 elif op == 'NotIn':
-                    sym_left.scopes.append((right, False, 1))
+                    sym_left.exc_scopes.append((right, 'allnotin'))
             elif func_name == 'any':
                 if op == 'In':
-                    sym_left.scopes.append((right, True, 1))
-                    sym_left.scopes.append((right, False, 0))
+                    sym_left.any_scopes.append((right, 'anyin'))
                 elif op == 'NotIn':
-                    sym_left.scopes.append((right, True, 0))
-                    sym_left.scopes.append((right, False, 1))
+                    sym_left.excany_scopes.append((right, 'anynotin'))
         elif isinstance(left, ast.Call):
             sym_right = self.symbols[right.id]
             left = self._exec_call(left)
             if func_name == 'all':
                 if op == 'In':
-                    pass  # TODO
+                    sym_right.required.append((left, 'required'))
                 elif op == 'NotIn':
-                    sym_right.excludes = left
+                    sym_right.exc_scopes.append((left, 'allnotin'))
             elif func_name == 'any':
                 if op == 'In':
-                    pass  # TODO
+                    sym_right.any_scopes.append((left, 'anyin'))
         else:
             raise TraceError('Unknown left type %s' % left)
 

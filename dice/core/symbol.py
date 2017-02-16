@@ -93,6 +93,10 @@ class StringList(SymbolBase):
         """
         super(StringList, self).__init__()
         self.scopes = []
+        self.exc_scopes = []
+        self.any_scopes = []
+        self.excany_scopes = []
+        self.required = []
 
     def generate(self, alpha=20, beta=1.8):
         """
@@ -107,16 +111,56 @@ class StringList(SymbolBase):
         """
         cnt = int(random.weibullvariate(alpha, beta))
         res = set()
-        for _ in range(cnt):
-            entry = None
-            if self.scopes:
-                for scope, _, _ in self.scopes:
-                    if scope:
-                        entry = random.choice(scope)
-            else:
+        scopes = set()
+        exc_scopes = set()
+        all_not = []
+        if self.scopes:
+            scopes = set(self.scopes[0][0])
+            for scope, _ in self.scopes:
+                scopes &= set(scope)
+        else:
+            for _ in range(cnt):
                 entry = self.generate()
-            if entry:
+                scopes.add(entry)
+
+        if self.exc_scopes:
+            for scope, _ in self.exc_scopes:
+                if scope and isinstance(scope[0], str):
+                    exc_scopes |= set(scope)
+                elif scope and isinstance(scope[0], list):
+                    for listscope in scope:
+                        all_not.append(listscope)
+
+        scopes -= exc_scopes
+        scopes = list(scopes)
+
+        while scopes:
+            flag = True
+            res = set()
+            for _ in range(cnt):
+                entry = random.choice(scopes)
                 res.add(entry)
+            for scope, _ in self.any_scopes:
+                if scope and isinstance(scope[0], str):
+                    if res & set(scope) is None:
+                        flag = False
+                        break
+                elif scope and isinstance(scope[0], list):
+                    pass  # TODO
+            for scope, _ in self.excany_scopes:
+                if res == res & set(scope):
+                    flag = False
+                    break
+            for scope in all_not:
+                if set(scope) == res & set(scope):
+                    flag = False
+                    break
+            if flag:
+                break
+
+        for requiredsc, _ in self.required:
+            res |= set(requiredsc)
+
         return list(res)
 
 
