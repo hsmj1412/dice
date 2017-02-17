@@ -109,57 +109,70 @@ class StringList(SymbolBase):
         """
         Generate a random-numbered list contains random printable strings.
         """
-        cnt = int(random.weibullvariate(alpha, beta))
-        res = set()
-        scopes = set()
-        exc_scopes = set()
-        all_not = []
-        if self.scopes:
-            scopes = set(self.scopes[0][0])
-            for scope, _ in self.scopes:
-                scopes &= set(scope)
-        else:
-            for _ in range(cnt):
-                entry = self.generate()
-                scopes.add(entry)
+        def list_generate():
+            scopes = set()
+            exc_scopes = set()
+            all_not = []
+            if self.scopes:
+                scopes = set(self.scopes[0][0])
+                for sc, _ in self.scopes:
+                    scopes &= set(sc)
+            else:
+                for _ in range(cnt):
+                    entry = self.generate()
+                    scopes.add(entry)
 
-        if self.exc_scopes:
-            for scope, _ in self.exc_scopes:
-                if scope and isinstance(scope[0], str):
-                    exc_scopes |= set(scope)
-                elif scope and isinstance(scope[0], list):
-                    for listscope in scope:
-                        all_not.append(listscope)
+            if self.exc_scopes:
+                for sc, _ in self.exc_scopes:
+                    if sc and isinstance(sc[0], str):
+                        exc_scopes |= set(sc)
+                    elif sc and isinstance(sc[0], list):
+                        for listscope in sc:
+                            all_not.append(listscope)
 
-        scopes -= exc_scopes
-        scopes = list(scopes)
+            scopes -= exc_scopes
+            scopes = list(scopes)
+            return scopes, all_not
 
-        while scopes:
-            flag = True
-            res = set()
-            for _ in range(cnt):
-                entry = random.choice(scopes)
-                res.add(entry)
-            for scope, _ in self.any_scopes:
-                if scope and isinstance(scope[0], str):
-                    if res & set(scope) is None:
+        def list_check():
+            rs = set()
+            while scopes:
+                flag = True
+                rs = set()
+                for _ in range(cnt):
+                    entry = random.choice(scopes)
+                    rs.add(entry)
+                for sc, _ in self.any_scopes:
+                    if sc and isinstance(sc[0], str):
+                        if rs & set(sc) is None:
+                            flag = False
+                            break
+                    elif sc and isinstance(sc[0], list):
+                        pass  # TODO
+                for sc, _ in self.excany_scopes:
+                    if rs == rs & set(sc):
                         flag = False
                         break
-                elif scope and isinstance(scope[0], list):
-                    pass  # TODO
-            for scope, _ in self.excany_scopes:
-                if res == res & set(scope):
-                    flag = False
+                for sc in all_not:
+                    if set(sc) == rs & set(sc):
+                        flag = False
+                        break
+                if flag:
                     break
-            for scope in all_not:
-                if set(scope) == res & set(scope):
-                    flag = False
-                    break
-            if flag:
-                break
+            return rs
 
-        for requiredsc, _ in self.required:
-            res |= set(requiredsc)
+        def list_required(res):
+            for requiredsc, _ in self.required:
+                res |= set(requiredsc)
+            return res
+
+        cnt = int(random.weibullvariate(alpha, beta))
+
+        scopes, all_not = list_generate()
+
+        res = list_check()
+
+        res = list_required(res)
 
         return list(res)
 
