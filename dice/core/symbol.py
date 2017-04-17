@@ -1,6 +1,7 @@
 import os
 import random
 import string
+from ..utils import xml_gen
 
 
 class SymbolBase(object):
@@ -113,7 +114,7 @@ class StringList(SymbolBase):
             scopes = set()
             exc_scopes = set()
             all_not = []
-            if self.scopes:
+            if len(self.scopes) > 0:
                 scopes = set(self.scopes[0][0])
                 for sc, _ in self.scopes:
                     scopes &= set(sc)
@@ -122,7 +123,7 @@ class StringList(SymbolBase):
                     entry = self.generate()
                     scopes.add(entry)
 
-            if self.exc_scopes:
+            if len(self.exc_scopes) > 0:
                 for sc, _ in self.exc_scopes:
                     if sc and isinstance(sc[0], str):
                         exc_scopes |= set(sc)
@@ -143,7 +144,7 @@ class StringList(SymbolBase):
                     entry = random.choice(scopes)
                     rs.add(entry)
                 for sc, _ in self.any_scopes:
-                    if sc and isinstance(sc[0], str):
+                    if len(sc) > 0 and isinstance(sc[0], str):
                         if rs & set(sc) is None:
                             flag = False
                             break
@@ -223,3 +224,43 @@ class Integer(SymbolBase):
                 if minimum < 0 and res < minimum - 1:
                     continue
             return int(res)
+
+
+class Xml(SymbolBase):
+    """
+        Symbol class for xml.
+        """
+
+    def __init__(self, scope=None, excs=None, exc_types=None):
+        """
+        :param scope: A list limits the scope of generated results.
+        :param excs: A list won't exist in generated results.
+        :param exc_types: A list of types won't exist in generated results.
+        """
+        super(StringList, self).__init__()
+        self.base = str()
+
+    def generate(self, alpha=20, beta=1.8):
+        """
+        Generate a random printable strings.
+        """
+        xml_gen.RngUtils()
+        cnt = int(random.weibullvariate(alpha, beta))
+        return ''.join(random.choice(string.printable) for _ in range(cnt))
+
+    def model(self, alpha=3, beta=1.8):
+        """
+        Generate a random-numbered list contains random printable strings.
+        """
+        if self.scope is None:
+            res = self.generate()
+            if self.excs is not None:
+                while res in self.excs:
+                    res = self.generate(alpha, beta)
+            return res
+        else:
+            res = random.choice(self.scope)
+            if self.excs is not None:
+                while res in self.excs:
+                    res = random.choice(self.scope)
+            return res

@@ -1,7 +1,10 @@
 import logging
 import random
 import string
-
+import re
+import importlib
+xml_gen = importlib.import_module('dice.utils.xml_gen')
+from xml.etree import ElementTree
 
 logger = logging.getLogger(__name__)
 
@@ -298,3 +301,45 @@ def regex(re_str):
         continue
     _end_group(1, 1)
     return _randomize(result_stack[0][0][0])
+
+
+def xml(rng_path, name=None):
+    xml_str = str(xml_gen.RngUtils(rng_path))
+    if name is not None:
+        xml_str = re.sub(r'(?<=\<name\>)\S*(?=\<\/name\>)', name, xml_str)
+    return xml_str
+
+
+def device_xml(dev_type=None):
+    dev_types = [
+        'disk',
+        'controller',
+        'lease',
+        'lease',
+        'filesystem',
+        'interface',
+        'input',
+        'sound',
+        'hostdev',
+        'graphic',
+        'video',
+        'console',
+        'parallel',
+        'serial',
+        'channel',
+        'smartcard',
+        'hub',
+        'redirdev',
+        'redirfilter',
+        'rng',
+        'tpm',
+        'shmem',
+        'emulator',
+        'watchdog',
+        'memballoon',
+        'nvram',
+        'panic',
+    ]
+    if dev_type is None:
+        dev_type = random.choice(dev_types)
+    return ElementTree.tostring(xml_gen.gen_node('devices'))

@@ -103,6 +103,7 @@ class Trace(object):
 
             test_val = call_ret
             if isinstance(call_ret, (list, tuple)):
+                assert len(call_ret) > 0
                 test_val = call_ret[0]
 
             if isinstance(test_val, builtins.str):
@@ -154,6 +155,8 @@ class Trace(object):
             sleft.scope = call_ret
         elif op == 'NotIn':
             sleft.excs = call_ret
+        elif op == 'base':
+            sleft.base = call_ret
         else:
             raise TraceError('Unknown operator: %s' % op)
 
