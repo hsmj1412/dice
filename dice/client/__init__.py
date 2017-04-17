@@ -378,7 +378,7 @@ class DiceApp(object):
                 if self.args.ui:
                     self.window.destroy()
                 self.exiting = True
-                self.test_thread.join()
+                self.test_thread.join(200)
                 try:
                     exc = self.test_excs.get(block=False)
                     for line in traceback.format_exception(*exc):
