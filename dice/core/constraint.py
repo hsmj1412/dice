@@ -96,21 +96,25 @@ class ConstraintManager(object):
             while len(cst_temp) > 0:
                 if self._assumption_valid(cst_temp[0]):
                     result = cst_temp[0].apply(item)
-                    if result == "success":
-                        if cst_temp[0].child is not None:
+                    if cst_temp[0].child is not None:
+                        if result == "success":
                             path_temp = os.path.join(self.provider.path,
                                                      'oracles',
                                                      cst_temp[0].child)
                             cst_temp += self._load_constraints(path_temp)
+                        if os.path.isdir(path_temp):
+                            shutil.rmtree(path_temp)
 
                 else:
                     result = 'skipped'
 
                 self.status[cst_temp[0].name] = result
                 cst_temp.remove(cst_temp[0])
+            '''
             if path_temp is not None:
                 if os.path.isdir(path_temp):
                     shutil.rmtree(path_temp)
+            '''
 
 
 class Constraint(object):
