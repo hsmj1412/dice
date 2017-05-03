@@ -244,9 +244,16 @@ class Xml(SymbolBase):
         """
         Generate a random printable strings.
         """
-        xml_gen.RngUtils()
-        cnt = int(random.weibullvariate(alpha, beta))
-        return ''.join(random.choice(string.printable) for _ in range(cnt))
+        try:
+            os.makedirs('xml/')
+        except:
+            pass
+        nst = String()
+        fname = 'xml/' + self.base + nst.generate(5) + '.xml'
+        f = open(fname, 'w')
+        f.write(xml_gen.RngUtils(self.base))
+        f.close()
+        return fname
 
     def model(self, alpha=3, beta=1.8):
         """

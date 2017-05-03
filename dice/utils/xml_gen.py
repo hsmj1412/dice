@@ -42,7 +42,7 @@ def gen_node(nodename=None, rng_path=None, sanity='startable'):
     nodetree = load_rng(rng_path)
     if utils_xml_gen is not None:
         try:
-            utils_xml_gen.node_overide(nodetree)
+            utils_xml_gen.node_overide(rng_path, nodetree)
         except:
             pass
 
