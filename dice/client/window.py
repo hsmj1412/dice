@@ -87,6 +87,8 @@ class Window(object):
         ch = self.screen.getch()
 
         if self.active_panel.on_keypress(ch):
+            if self.panels.index(self.active_panel) == 0:
+                self.panels[1].select('', 0)
             return
 
         if ch == ord('q'):

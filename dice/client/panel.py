@@ -256,6 +256,7 @@ class ListPanel(_PanelBase):
                 cat_name = cats[(cat_idx + 1) % len(cats)]
                 item_idx = 0
             self.select(cat_name, item_idx)
+            return True
         elif key == ord('k'):
             cat_name, item_idx = self.cur_key
 
@@ -270,6 +271,7 @@ class ListPanel(_PanelBase):
                 cat_name = cats[(cat_idx - 1) % len(cats)]
                 item_idx = 0
             self.select(cat_name, item_idx)
+            return True
 
         for listener in self.keypress_listeners.values():
             if key == ord(listener['key']):
