@@ -38,7 +38,8 @@ def load_rng(file_name, is_root=True):
     return nodetree if is_root else nodetree.getchildren()
 
 
-def gen_node(nodename=None, rng_path=None, sanity='startable'):
+def gen_node(nodename=None, rng_path=None, sanity='startable',
+             required=None, excs=None):
     nodetree = load_rng(rng_path)
     if utils_xml_gen is not None:
         try:
@@ -57,10 +58,10 @@ def gen_node(nodename=None, rng_path=None, sanity='startable'):
         'nodetree': nodetree,
         'sanity': sanity,
     }
-    return parse_node(node, params=params)
+    return parse_node(node, params=params, required=required, excs=excs)
 
 
-def parse_node(node, params=None, parent=None):
+def parse_node(node, params=None, parent=None, required=None, excs=None):
     xml_stack = params['xml_stack']
     node_stack = params['node_stack']
     nodetree = params['nodetree']
@@ -100,11 +101,11 @@ def parse_node(node, params=None, parent=None):
 
     if node.tag in ["start", "define"]:
         if len(subnodes) == 1:
-            return parse_node(subnodes[0], params, node)
+            return parse_node(subnodes[0], params, node, required, excs)
         elif len(subnodes) > 1:
             for subnode in subnodes:
                 result = None
-                sgl_res = parse_node(subnode, params, node)
+                sgl_res = parse_node(subnode, params, node, required, excs)
                 if sgl_res is not None:
                     if result is not None:
                         # TODO: Fix this
@@ -118,7 +119,7 @@ def parse_node(node, params=None, parent=None):
             if not len(def_node.findall('./notAllowed')):
                 choices.append(def_node)
         if choices:
-            return parse_node(random.choice(choices), params, node)
+            return parse_node(random.choice(choices), params, node, required, excs)
     elif node.tag == "element":
         if node.find('./anyName') is not None:
             name = rnd.text()
@@ -130,7 +131,7 @@ def parse_node(node, params=None, parent=None):
             xml_stack[-1].append(element)
         xml_stack.append(element)
         for subnode in subnodes:
-            sgl_res = parse_node(subnode, params, node)
+            sgl_res = parse_node(subnode, params, node, required, excs)
             if type(sgl_res) is str:
                 element.text = sgl_res
         if len(xml_stack) > 1:
@@ -139,7 +140,7 @@ def parse_node(node, params=None, parent=None):
     elif node.tag == "attribute":
         if subnodes is not None:
             if subnodes:
-                value = parse_node(subnodes[0], params, node)
+                value = parse_node(subnodes[0], params, node, required, excs)
             else:
                 value = saxutils.escape(
                     rnd.text(),
@@ -156,21 +157,21 @@ def parse_node(node, params=None, parent=None):
         is_optional = random.random() < 1
         if is_optional:
             for subnode in subnodes:
-                parse_node(subnode, params, parent)
+                parse_node(subnode, params, parent, required, excs)
     elif node.tag == "interleave":
         if False:
             # TODO
             random.shuffle(subnodes)
         for subnode in subnodes:
-            parse_node(subnode, params, parent)
+            parse_node(subnode, params, parent, required, excs)
     elif node.tag == "data":
         return get_data(node, parent)
     elif node.tag == "choice":
         choice = random.choice(node.getchildren())
-        return parse_node(choice, params, parent)
+        return parse_node(choice, params, parent, required, excs)
     elif node.tag == "group":
         for subnode in subnodes:
-            parse_node(subnode, params, node)
+            parse_node(subnode, params, node, required, excs)
     elif node.tag in ["zeroOrMore", "oneOrMore"]:
         if len(subnodes) > 1:
             logging.error("More than one subnodes when xOrMore")
@@ -179,7 +180,7 @@ def parse_node(node, params=None, parent=None):
         min_cnt = 1 if node.tag == "oneOrMore" else 0
         cnt = int(random.expovariate(0.5)) + min_cnt
         for i in range(cnt):
-            parse_node(subnode, params, node)
+            parse_node(subnode, params, node, required, excs)
     elif node.tag == "value":
         return node.text
     elif node.tag in ["text", 'anyName']:
@@ -195,11 +196,10 @@ def parse_node(node, params=None, parent=None):
         exit(1)
 
 
-def get_data(node, parent):
-    scopes = []
+def get_data(node, parent, required=[], excs=[]):
     data_type = node.get('type')
     signaturedata = DICE_SIGNATURE + '_' + data_type + '_' + parent.get('name')
-    if signaturedata in scopes:
+    if signaturedata in required:
         return signaturedata
     print(str(etree.tostring(parent).decode()))
     if data_type in ['short', 'integer', 'int', 'long', 'unsignedShort',
@@ -234,12 +234,13 @@ def get_data(node, parent):
 
 class RngUtils:
 
-    def __init__(self, rngpath=None, sanity='startable'):
+    def __init__(self, rngpath=None, required=None, excs=None, sanity='startable'):
         self.interleave = False
         self.optional = 1
         self.MAX_DEEPTH = 100
         self.params = {}
-        self.xml = gen_node(rng_path=rngpath, sanity=sanity)
+        self.xml = gen_node(rng_path=rngpath, sanity=sanity,
+                            required=required, excs=excs)
 
         try:
             commandlines = self.xml.findall('./commandline')

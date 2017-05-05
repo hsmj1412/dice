@@ -239,8 +239,13 @@ class Xml(SymbolBase):
         """
         super(StringList, self).__init__()
         self.base = str()
+        self.scopes = []
+        self.exc_scopes = []
+        self.any_scopes = []
+        self.excany_scopes = []
+        self.required = []
 
-    def generate(self, alpha=20, beta=1.8):
+    def generate(self, alpha=5, beta=1.8):
         """
         Generate a random printable strings.
         """
@@ -249,25 +254,25 @@ class Xml(SymbolBase):
         except:
             pass
         nst = String()
-        fname = 'xml/' + self.base + nst.generate(5) + '.xml'
+        fname = 'xml/' + self.base + nst.generate(alpha, beta) + '.xml'
         f = open(fname, 'w')
-        f.write(xml_gen.RngUtils(self.base))
+        f.write(xml_gen.RngUtils(self.base, self.required))
         f.close()
         return fname
 
-    def model(self, alpha=3, beta=1.8):
+    def model(self, alpha=5, beta=1.8):
         """
         Generate a random-numbered list contains random printable strings.
         """
-        if self.scope is None:
+        if self.scopes is None:
             res = self.generate()
             if self.excs is not None:
                 while res in self.excs:
                     res = self.generate(alpha, beta)
             return res
         else:
-            res = random.choice(self.scope)
+            res = random.choice(self.scopes)
             if self.excs is not None:
                 while res in self.excs:
-                    res = random.choice(self.scope)
+                    res = random.choice(self.scopes)
             return res
