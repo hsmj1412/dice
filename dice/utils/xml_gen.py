@@ -61,7 +61,14 @@ def gen_node(nodename=None, rng_path=None, sanity='startable',
     return parse_node(node, params=params, required=required, excs=excs)
 
 
-def parse_node(node, params=None, parent=None, required=None, excs=None):
+def parse_node(node, params=None, parent='', required=None, excs=None):
+    if node.get('name') is None:
+        nodenm = parent
+    else:
+        if node.tag == 'element' or node.tag == 'attribute':
+            nodenm = parent + '/' + node.get('name')
+        else:
+            nodenm = parent
     xml_stack = params['xml_stack']
     node_stack = params['node_stack']
     nodetree = params['nodetree']
@@ -157,18 +164,18 @@ def parse_node(node, params=None, parent=None, required=None, excs=None):
         is_optional = random.random() < 1
         if is_optional:
             for subnode in subnodes:
-                parse_node(subnode, params, parent, required, excs)
+                parse_node(subnode, params, nodenm, required, excs)
     elif node.tag == "interleave":
         if False:
             # TODO
             random.shuffle(subnodes)
         for subnode in subnodes:
-            parse_node(subnode, params, parent, required, excs)
+            parse_node(subnode, params, nodenm, required, excs)
     elif node.tag == "data":
-        return get_data(node, parent)
+        return get_data(node, nodenm, required)
     elif node.tag == "choice":
         choice = random.choice(node.getchildren())
-        return parse_node(choice, params, parent, required, excs)
+        return parse_node(choice, params, nodenm, required, excs)
     elif node.tag == "group":
         for subnode in subnodes:
             parse_node(subnode, params, node, required, excs)
@@ -196,12 +203,12 @@ def parse_node(node, params=None, parent=None, required=None, excs=None):
         exit(1)
 
 
-def get_data(node, parent, required=[], excs=[]):
+def get_data(node, parent, required=[]):
     data_type = node.get('type')
-    signaturedata = DICE_SIGNATURE + '_' + data_type + '_' + parent.get('name')
-    if signaturedata in required:
+    if parent in required:
+        signaturedata = DICE_SIGNATURE + str(random.randint(100000, 999999)) +\
+                        '_' + parent
         return signaturedata
-    print(str(etree.tostring(parent).decode()))
     if data_type in ['short', 'integer', 'int', 'long', 'unsignedShort',
                      'unsignedInt', 'unsignedLong', 'positiveInteger']:
         data_max = 100
